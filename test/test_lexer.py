@@ -1,11 +1,7 @@
 import unittest
 
 from src.lexer import Token, TokenTypes, Lexer
-
-class MockLexer:
-    def __init__(self, source: str):
-        self.source = source
-
+from mocks import MockLexer
 
 class TestTokenBuild(unittest.TestCase):
     def setUp(self):
@@ -20,6 +16,11 @@ class TestTokenBuild(unittest.TestCase):
 
     def test_text_unclosed(self):
         self.assertEqual(self.tok.text(), "")
+
+    def test_text_clos_from_init(self):
+        tok = Token(self.mocklex, TokenTypes.IDENT, 0, 4)
+        self.assertEqual(tok.type, TokenTypes.EQ)
+        self.assertEqual(tok.text(), "__eq")
 
     def test_text_closed(self):
         self.tok.close(4)
@@ -104,10 +105,10 @@ class TestLexer(unittest.TestCase):
 
     def test_build_in(self):
         T = TokenTypes
-        types = (T.IF, T.ADD, T.NEG, T.MUL, T.DIV, T.INV, T.REM, T.EQ, T.LESS,
+        types = (T.ADD, T.NEG, T.MUL, T.DIV, T.INV, T.REM, T.EQ, T.LESS,
                  T.HEAD, T.TAIL, T.PAIR, T.FUSE, T.LITR, T.STR, T.WORDS, T.IN,
                  T.OUT)
-        op = ('if','add','neg','mul','div','inv','rem','eq','lt','head',
+        op = ('add','neg','mul','div','inv','rem','eq','lt','head',
               'tail','pair','fuse','litr','str','words','input','print')
 
         for op, type in zip(op, types):
@@ -119,6 +120,10 @@ class TestLexer(unittest.TestCase):
         lex = Lexer("fn 1 is")
         self.assertEqual(lex.tokens[0].type, TokenTypes.FN)
         self.assertEqual(lex.tokens[2].type, TokenTypes.IS)
+
+    def test_if(self):
+        lex = Lexer("if = 1 2")
+        self.assertEqual(lex.tokens[0].type, TokenTypes.IF)
 
     def test_number(self):
         lex = Lexer(" 1234 ")

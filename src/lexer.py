@@ -42,6 +42,8 @@ class TokenTypes(Enum):
     # I/O
     IN = 50
     OUT = 51
+    # call, used by parser
+    CALL =  60
     # fail
     FAIL = 100
 
@@ -54,16 +56,21 @@ class Token:
         The lexer that created this token
     type : TokenTypes
         The token type for this token
-    start_pos: int
+    start_pos : int
         The pos in lexer.source that this token starts at
+    end_pos : int, Optional
+        The endpos in source string, if given closes Token directly
 
     """
-    def __init__(self, lexer: Lexer, type: TokenTypes, start_pos: int):
-        super().__init__()
+    def __init__(self, lexer: Lexer, type: TokenTypes,
+                 start_pos: int, end_pos: int = -1):
         self.lexer = lexer
         self.type = type
         self.start_pos = start_pos
-        self.end_pos = -1
+        self.end_pos = end_pos
+
+        if end_pos > -1:
+            self.close(end_pos)
 
     def close(self, end_pos: int) -> None:
         """Finish the token by setting the text for it
@@ -79,7 +86,6 @@ class Token:
         # decide if IDENT was a build in thing
         if self.type == TokenTypes.IDENT:
             match self.text():
-                case '__if':    self.type = TokenTypes.IF
                 case '__add':   self.type = TokenTypes.ADD
                 case '__neg':   self.type = TokenTypes.NEG
                 case '__mul':   self.type = TokenTypes.MUL
@@ -99,6 +105,7 @@ class Token:
                 case '__print': self.type = TokenTypes.OUT
                 case 'fn':      self.type = TokenTypes.FN
                 case 'is':      self.type = TokenTypes.IS
+                case 'if':      self.type = TokenTypes.IF
 
 
     def text(self) -> str:
@@ -152,6 +159,9 @@ class Token:
                 col += 1
 
         return line, col
+
+    def is_type(self, type: TokenTypes):
+        return self.type == type
 
 
 class LexerStates(Enum):
