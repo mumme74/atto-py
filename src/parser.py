@@ -54,11 +54,27 @@ class Func:
 
 
 class Parser:
-    """The parser class, build the AST tree"""
-    def __init__(self, source: str):
+    """The parser class, build the AST tree
+
+    Attributes
+    ----------
+    lexer : Lexer
+        The lexer used to tokenize the code
+    funcs : Dict[str, Func]
+        All parsed functions this program contains
+
+    Parameters
+    ----------
+    source : str
+        The source code to parse
+    funcs : Dict[str, Func], Optional
+        Functions already parsed, used for corelib
+    """
+
+    def __init__(self, source: str, funcs: Dict[str, Func]=None):
         self.lexer = Lexer(source)
         self._pos = -1
-        self.funcs: Dict[str, Func] = {}
+        self.funcs: Dict[str, Func] = {} if funcs is None else funcs
         self._parse_funcs()
 
     def _back(self) -> Token:
@@ -119,7 +135,8 @@ class Parser:
                     raise AttoSyntaxError(
                         f"Could not find identifer {tok.text()}, " +
                          " at line: {line}, col: {col}")
-                case TokenTypes.STRING | TokenTypes.NUMBER:
+                case TokenTypes.STRING | TokenTypes.NUMBER | TokenTypes.TRUE | \
+                    TokenTypes.FALSE | TokenTypes.NULL:
                     return ASTnode(tok) #reached epsilon
                 case TokenTypes.IF:
                     return ASTnode(tok, self._parse_expr(),
@@ -154,7 +171,8 @@ class Parser:
                     return ASTnode(tok, self._parse_expr())
                 case TokenTypes.STR:
                     return ASTnode(tok, self._parse_expr())
-                #case TokenTypes.WORDS: pass
+                case TokenTypes.WORDS:
+                    return ASTnode(tok, self._parse_expr())
                 case TokenTypes.IN:
                     ident = self._expect(TokenTypes.IDENT)
                     return ASTnode(tok, ASTnode(ident))

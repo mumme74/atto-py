@@ -16,6 +16,9 @@ class TokenTypes(Enum):
     IDENT = 3 # may be a built_in, decide when token is closed
     NUMBER = 4
     STRING = 5
+    NULL = 6
+    TRUE = 7
+    FALSE = 8
 
     # intrinsic (built in from her on)
     # Flow control
@@ -106,6 +109,9 @@ class Token:
                 case 'fn':      self.type = TokenTypes.FN
                 case 'is':      self.type = TokenTypes.IS
                 case 'if':      self.type = TokenTypes.IF
+                case 'true':    self.type = TokenTypes.TRUE
+                case 'false':   self.type = TokenTypes.FALSE
+                case 'null':    self.type = TokenTypes.NULL
 
 
     def text(self) -> str:
@@ -120,7 +126,7 @@ class Token:
             return ""
         return self.lexer.source[self.start_pos : self.end_pos]
 
-    def value(self) -> str | float:
+    def value(self) -> str | float | bool | None:
         """Get the as correct type
 
         If a string it will strip "..." => ...
@@ -137,6 +143,12 @@ class Token:
                 return float(txt)
             case TokenTypes.STRING:
                 return txt[1:-1]
+            case TokenTypes.TRUE:
+                return True
+            case TokenTypes.FALSE:
+                return False
+            case TokenTypes.NULL:
+                return None
             case _:
                 return txt
 
@@ -217,7 +229,7 @@ class Lexer:
                     self._end_token(i)
             else: # string
                 if c == '"' and source[i-1] != '\\':
-                    self._end_token(i)
+                    self._end_token(i+1)
 
         # possible dangling last token
         if self._token:
