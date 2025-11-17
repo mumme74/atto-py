@@ -134,7 +134,7 @@ class Parser:
                     line, col = tok.line_col()
                     raise AttoSyntaxError(
                         f"Could not find identifer {tok.text()}, " +
-                         " at line: {line}, col: {col}")
+                        f" at line: {line}, col: {col}")
                 case TokenTypes.STRING | TokenTypes.NUMBER | TokenTypes.TRUE | \
                     TokenTypes.FALSE | TokenTypes.NULL:
                     return ASTnode(tok) #reached epsilon
