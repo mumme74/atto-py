@@ -132,19 +132,15 @@ class Interpreter:
 
             case TokenTypes.HEAD:
                 left = self._eval_node(node.left, frame)
-                if isinstance(left, list):
-                    return left[0]
-                if isinstance(left, str):
-                    return left[:1]
-                return left
+                if isinstance(left, (list, str)):
+                    return left[0] if left else None
+                return None
 
             case TokenTypes.TAIL:
                 left = self._eval_node(node.left, frame)
-                if isinstance(left, list):
-                    return left[-1]
-                if isinstance(left, str):
-                    return left[-2:-1]
-                return left
+                if isinstance(left, (list, str)):
+                    return left[1:] if len(left) > 1 else None
+                return None
 
             case TokenTypes.PAIR:
                 left = self._eval_node(node.left, frame)

@@ -175,3 +175,51 @@ class TestLanguagePrimitives(unittest.TestCase):
     def test_str(self):
         res = self.run_code("fn main is print str 12")
         self.assertEqual(res, "12.0\n")
+
+    def test_litr(self):
+        res = self.run_code("fn main is print + litr \"10\" 5")
+        self.assertEqual(res, "15.0\n")
+
+    def test_words(self):
+        res = self.run_code("fn main is print words \"this is a sentence.\"")
+        self.assertEqual(res, "['this', 'is', 'a', 'sentence.']\n")
+
+    def test_pair(self):
+        res = self.run_code("fn main is print pair 1 2")
+        self.assertEqual(res, "[1.0, 2.0]\n")
+
+    def test_head_list(self):
+        res = self.run_code("fn main is print head pair 1 pair 2 3")
+        self.assertEqual(res, "1.0\n")
+
+    def test_head_str(self):
+        res = self.run_code("fn main is print head \"string\"")
+        self.assertEqual(res, "s\n")
+
+    def test_tail_list(self):
+        res = self.run_code("fn main is print tail fuse 1 pair 2 3")
+        self.assertEqual(res, "[2.0, 3.0]\n")
+
+    def test_tail_str(self):
+        res = self.run_code("fn main is print tail \"string\"")
+        self.assertEqual(res, "tring\n")
+
+    def test_fuse_lists(self):
+        res = self.run_code("fn main is print fuse pair 1 2 pair 3 4")
+        self.assertEqual(res, "[1.0, 2.0, 3.0, 4.0]\n")
+
+    def test_fuse_left_list(self):
+        res = self.run_code("fn main is print fuse pair 1 2 3")
+        self.assertEqual(res, "[1.0, 2.0, 3.0]\n")
+
+    def test_fuse_right_list(self):
+        res = self.run_code("fn main is print fuse 1 pair 2 3")
+        self.assertEqual(res, "[1.0, 2.0, 3.0]\n")
+
+    def test_fuse_numbers(self):
+        res = self.run_code("fn main is print fuse 1 2")
+        self.assertEqual(res, "[1.0, 2.0]\n")
+
+    def test_fuse_strings(self):
+        res = self.run_code("fn main is print fuse \"one\" \"two\"")
+        self.assertEqual(res, "['one', 'two']\n")
