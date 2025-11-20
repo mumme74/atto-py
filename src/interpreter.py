@@ -4,11 +4,16 @@ from __future__ import annotations
 from typing import Dict, List, Type
 from pathlib import Path
 from copy import deepcopy
+from sys import setrecursionlimit
 
 from src.parser import Parser, ASTnode, Func
 from src.lexer import TokenTypes, AttoSyntaxError
 
-this_path = Path(__file__).absolute().parent
+# path to src folder
+SRC_PATH = Path(__file__).absolute().parent
+
+# allow for complex factorials to work
+setrecursionlimit(10**6)
 
 class AttoRuntimeError(RuntimeError):
     """When a runtime error happens in the interpreter"""
@@ -34,7 +39,7 @@ class Interpreter:
     def __init__(self, use_corelib=True):
         # initialize core lib
         if not Interpreter._corelib_code and use_corelib:
-            with open(this_path.parent / "corelib" / "core.at", mode="r") as f:
+            with open(SRC_PATH.parent / "corelib" / "core.at", mode="r") as f:
                 Interpreter._corelib_code = f.read()
 
             core_parser = Parser(Interpreter._corelib_code)
