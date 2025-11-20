@@ -9,7 +9,8 @@ test_dir = Path(__file__).absolute().parent
 
 class TestInterpreter(unittest.TestCase):
     def setUp(self):
-        pass
+        Interpreter._corelib_funcs = None
+        Interpreter._corelib_code = None
 
     def test_init_no_corelib(self):
         interp = Interpreter(False)
@@ -73,3 +74,104 @@ class TestInterpreter(unittest.TestCase):
                           "fact(5.0) = 120.0",
                           "fact(6.0) = 720.0",
                           ""]))
+
+
+class TestLanguagePrimitives(unittest.TestCase):
+
+    def run_code(self, source):
+        interp = Interpreter()
+        f = StringIO()
+        with redirect_stdout(f):
+            interp.exec(source)
+
+        return f.getvalue()
+
+    def test_number(self):
+        res = self.run_code("fn main is print 123")
+        self.assertEqual(res, "123.0\n")
+
+    def test_string(self):
+        res = self.run_code("fn main is print \"'str'\"")
+        self.assertEqual(res, "'str'\n")
+
+    def test_true(self):
+        res = self.run_code("fn main is print true")
+        self.assertEqual(res, "true\n")
+
+    def test_false(self):
+        res = self.run_code("fn main is print false")
+        self.assertEqual(res, "false\n")
+
+    def test_print(self):
+        res = self.run_code("fn main is print null")
+        self.assertEqual(res, "null\n")
+
+    def test_ident(self):
+        res = self.run_code("""
+            fn ident_test x is
+                print x
+
+            fn main is
+                ident_test 34
+        """)
+        self.assertEqual(res, "34.0\n")
+
+    def test_if_eq_first(self):
+        res = self.run_code("""
+            fn main is
+                print if = 1 1
+                    "equal"
+                    "not equal"
+        """)
+        self.assertEqual(res, "equal\n")
+
+    def test_if_eq_second(self):
+        res = self.run_code("""
+            fn main is
+                print if = 1 2
+                    "equal"
+                    "not equal"
+        """)
+        self.assertEqual(res, "not equal\n"),
+
+    def test_if_lt_first(self):
+        res = self.run_code("""
+            fn main is
+                print if < 1 2
+                    "equal"
+                    "not equal"
+        """)
+        self.assertEqual(res, "equal\n")
+
+    def test_if_lt_second(self):
+        res = self.run_code("""
+            fn main is
+                print if < 2 1
+                    "equal"
+                    "not equal"
+        """)
+        self.assertEqual(res, "not equal\n")
+
+    def test_add(self):
+        res = self.run_code("fn main is print + 1 2")
+        self.assertEqual(res, "3.0\n")
+
+    def test_neg(self):
+        res = self.run_code("fn main is print - 1 2")
+        self.assertEqual(res, "-1.0\n")
+
+    def test_mul(self):
+        res = self.run_code("fn main is print * 4 3")
+        self.assertEqual(res, "12.0\n")
+
+    def test_div(self):
+        res = self.run_code("fn main is print / 12 3")
+        self.assertEqual(res, "4.0\n")
+
+    def test_rem(self):
+        res = self.run_code("fn main is print % 12 5")
+        self.assertEqual(res, "2.0\n")
+
+    def test_str(self):
+        res = self.run_code("fn main is print str 12")
+        self.assertEqual(res, "12.0\n")

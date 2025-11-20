@@ -131,20 +131,20 @@ class Interpreter:
                 return left < right
 
             case TokenTypes.HEAD:
-                lst = self._eval_node(node.left, frame)
-                if not isinstance(lst, list):
-                    line, col = node.left.token.line_col()
-                    raise AttoRuntimeError(
-                        f"Trying to get head of a non list at line: {line} col: {col}")
-                return lst[0]
+                left = self._eval_node(node.left, frame)
+                if isinstance(left, list):
+                    return left[0]
+                if isinstance(left, str):
+                    return left[:1]
+                return left
 
             case TokenTypes.TAIL:
-                lst = self._eval_node(node.left, frame)
-                if not isinstance(lst, list):
-                    line, col = node.left.token.line_col()
-                    raise AttoRuntimeError(
-                        f"Trying to get tail of a non list at line: {line} col: {col}")
-                return lst[-1]
+                left = self._eval_node(node.left, frame)
+                if isinstance(left, list):
+                    return left[-1]
+                if isinstance(left, str):
+                    return left[-2:-1]
+                return left
 
             case TokenTypes.PAIR:
                 left = self._eval_node(node.left, frame)
@@ -155,16 +155,14 @@ class Interpreter:
                 left = self._eval_node(node.left, frame)
                 right = self._eval_node(node.right, frame)
 
-                if not isinstance(left, list):
-                    n = left
-                elif not isinstance(right, list):
-                    n = right
-                if n:
-                    line, col = n.token.line_col()
-                    raise AttoRuntimeError(
-                        f"Trying to fuse non list at line: {line} col: {col}")
-
-                return [e for e in left] + [e for e in right]
+                if isinstance(left, list):
+                    if isinstance(right, list):
+                        return left + right
+                    left.append(right)
+                    return left
+                elif isinstance(right, list):
+                    return [left] + right
+                return [left, right]
 
             case TokenTypes.LITR:
                 left = self._eval_node(node.left, frame)
@@ -175,7 +173,7 @@ class Interpreter:
                         return float(left)
                     except ValueError:
                         pass
-                # catches when left is a list
+                # also catches when left is a list
                 line, col = node.left.token.line_col()
                 raise AttoRuntimeError(
                     f"Failed to convert {node.left.token.value} to " +
@@ -200,7 +198,12 @@ class Interpreter:
 
             case TokenTypes.OUT:
                 left = self._eval_node(node.left, frame)
-                print(left)
+                if isinstance(left, bool):
+                    print(str(left).lower())
+                elif left is None:
+                    print("null")
+                else:
+                    print(left)
 
             case TokenTypes.CALL:
                 new_func = self.parser.funcs[node.token.text()]
