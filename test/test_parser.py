@@ -1,6 +1,7 @@
 import unittest
+from pathlib import Path
 
-from src.lexer import Token, TokenTypes
+from src.lexer import Token, TokenTypes, AttoSyntaxError
 from src.parser import Parser, ASTnode, Func
 from mocks import MockLexer
 
@@ -63,7 +64,7 @@ class TestFunc(unittest.TestCase):
 
     def test_init(self):
         fun = Func(self.tokens['test'])
-        self.assertIs(fun.nameTok, self.tokens['test'])
+        self.assertIs(fun.name_tok, self.tokens['test'])
 
     def test_name(self):
         fun = Func(self.tokens['test'])
@@ -93,7 +94,7 @@ class TestParser(unittest.TestCase):
         """
 
     def test_parse(self):
-        parser = Parser(self.src)
+        parser = Parser(self.src, Path())
         self.assertEqual(len(parser.funcs), 1)
         func = parser.funcs['test']
         self.assertEqual(func.name(), 'test')
@@ -109,6 +110,20 @@ class TestParser(unittest.TestCase):
         self.assertEqual(paths.right.token.text(), '__print')
         self.assertEqual(paths.left.left.token.text(), 'x')
         self.assertEqual(paths.right.left.token.text(), 'y')
+
+
+class TestParserSyntaxError(unittest.TestCase):
+    def test_bad_fn_def(self):
+        src = "fn main print"
+        self.assertRaisesRegex(AttoSyntaxError,
+            "Expected TokenTypes.IS near faker.at:1 col: 8",
+            lambda: Parser(src, Path("fake/faker.at")))
+
+    def test_bad_faile_expect(self):
+        src = "fn main is if __eq 1 2 3 4 5"
+        self.assertRaisesRegex(AttoSyntaxError,
+            "Expected TokenTypes.FN faker.at:1 col: 27",
+            lambda: Parser(src, Path("fake/faker.at")))
 
 
 if __name__ == "__main__":

@@ -12,6 +12,9 @@ from src.lexer import TokenTypes, AttoSyntaxError
 # path to src folder
 SRC_PATH = Path(__file__).absolute().parent
 
+# path to core lib
+CORE_LIB_PATH = SRC_PATH.parent / "corelib" / "core.at"
+
 # allow for complex factorials to work
 setrecursionlimit(10**6)
 
@@ -39,10 +42,10 @@ class Interpreter:
     def __init__(self, use_corelib=True):
         # initialize core lib
         if not Interpreter._corelib_code and use_corelib:
-            with open(SRC_PATH.parent / "corelib" / "core.at", mode="r") as f:
+            with open(CORE_LIB_PATH, mode="r") as f:
                 Interpreter._corelib_code = f.read()
 
-            core_parser = Parser(Interpreter._corelib_code)
+            core_parser = Parser(Interpreter._corelib_code, CORE_LIB_PATH)
             Interpreter._corelib_funcs = core_parser.funcs
 
         self.use_corelib = use_corelib
@@ -55,12 +58,14 @@ class Interpreter:
             print(f"Error opening file: {path}: {e}")
             return 1
         else:
-            return self.exec(source)
+            return self.exec(source, path)
 
-    def exec(self, source: str) -> int:
+    def exec(self, source: str, path: Path|None = None) -> int:
         funcs = deepcopy(Interpreter._corelib_funcs)
+        if path is None:
+            path = Path()
         try:
-            self.parser = Parser(source, funcs)
+            self.parser = Parser(source, path, funcs)
         except AttoSyntaxError as e:
             print(e)
             return 1

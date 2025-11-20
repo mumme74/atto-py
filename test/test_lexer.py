@@ -1,6 +1,7 @@
 import unittest
+from pathlib import Path
 
-from src.lexer import Token, TokenTypes, Lexer
+from src.lexer import Token, TokenTypes, Lexer, AttoSyntaxError
 from mocks import MockLexer
 
 class TestTokenBuild(unittest.TestCase):
@@ -85,18 +86,18 @@ class TestTokenLineCol(unittest.TestCase):
 
 class TestLexer(unittest.TestCase):
     def test_empty(self):
-        lex = Lexer("")
+        lex = Lexer("", Path())
         self.assertEqual(len(lex.tokens), 0)
 
     def test_one_token(self):
-        lex = Lexer("one")
+        lex = Lexer("one", Path())
         self.assertEqual(len(lex.tokens), 1)
         tok = lex.tokens[0]
         self.assertEqual(tok.type, TokenTypes.IDENT)
         self.assertEqual(tok.text(), "one")
 
     def test_statement(self):
-        lex = Lexer("__eq 1 2")
+        lex = Lexer("__eq 1 2", Path())
         self.assertEqual(len(lex.tokens), 3)
         self.assertEqual(lex.tokens[0].text(), '__eq')
         self.assertEqual(lex.tokens[1].text(), '1')
@@ -112,24 +113,37 @@ class TestLexer(unittest.TestCase):
               'tail','pair','fuse','litr','str','words','input','print')
 
         for op, type in zip(op, types):
-            lex = Lexer(f"__{op}")
+            lex = Lexer(f"__{op}", Path())
             self.assertEqual(lex.tokens[0].type, type)
             self.assertEqual(lex.tokens[0].text(), f"__{op}")
 
     def test_fn(self):
-        lex = Lexer("fn 1 is")
+        lex = Lexer("fn 1 is", Path())
         self.assertEqual(lex.tokens[0].type, TokenTypes.FN)
         self.assertEqual(lex.tokens[2].type, TokenTypes.IS)
 
     def test_if(self):
-        lex = Lexer("if = 1 2")
+        lex = Lexer("if = 1 2", Path())
         self.assertEqual(lex.tokens[0].type, TokenTypes.IF)
 
     def test_number(self):
-        lex = Lexer(" 1234 ")
+        lex = Lexer(" 1234 ", Path())
         self.assertEqual(lex.tokens[0].type, TokenTypes.NUMBER)
         self.assertEqual(lex.tokens[0].text(), "1234")
         self.assertEqual(lex.tokens[0].value(), 1234)
+
+
+class TestAttoSyntaxError(unittest.TestCase):
+    def test_init(self):
+        lex = Lexer(" 1245", Path("fake/fakefile.at"))
+        tok = lex.tokens[0]
+        err = AttoSyntaxError("TestError", tok)
+        self.assertEqual(err.msg, "TestError fakefile.at:1 col: 1")
+
+    def test_lex_raise(self):
+        self.assertRaisesRegex(AttoSyntaxError,
+            "Unrecognized char faker.at:2 col: 1",
+            lambda: Lexer("\n \b", Path("fake/faker.at")))
 
 
 if __name__ == "__main__":

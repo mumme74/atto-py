@@ -6,6 +6,7 @@ Output is an Abstract syntax tree that the interpreter uses.
 from __future__ import annotations
 from typing import Dict, List
 from src.lexer import Token, TokenTypes, Lexer, AttoSyntaxError
+from pathlib import Path
 
 class EOFerror(Exception):
     """Used to indicate END of file"""
@@ -27,26 +28,26 @@ class Func:
 
     Parameters
     ----------
-    nameTok : Token
+    name_tok : Token
         The token that defines this functions name
 
     Attributes
     ----------
-    nameTok : Token
+    name_tok : Token
         The token that defined this functions name
     params : List[Token]
         The tokens for each parameter (arguments)
     body : ASTnode
         A root for the AST tree for the body of this function
     """
-    def __init__(self, nameTok: Token):
-        self.nameTok: Token = nameTok
+    def __init__(self, name_tok: Token):
+        self.name_tok: Token = name_tok
         self.parm: List[Token] = []
         self.body: ASTnode
 
     def name(self) -> str:
         """Get the name of the function"""
-        return self.nameTok.value()
+        return self.name_tok.value()
 
     def params(self):
         """Get a list of param names"""
@@ -67,12 +68,14 @@ class Parser:
     ----------
     source : str
         The source code to parse
+    path : Path
+        The path to source-code file
     funcs : Dict[str, Func], Optional
         Functions already parsed, used for corelib
     """
 
-    def __init__(self, source: str, funcs: Dict[str, Func]=None):
-        self.lexer = Lexer(source)
+    def __init__(self, source: str, path: Path, funcs: Dict[str, Func]=None):
+        self.lexer = Lexer(source, path)
         self._pos = -1
         self.funcs: Dict[str, Func] = {} if funcs is None else funcs
         self._parse_funcs()
@@ -90,9 +93,7 @@ class Parser:
     def _expect(self, tok_type: TokenTypes) -> Token:
         tok = self._next()
         if not tok.is_type(tok_type):
-            line, col = tok.line_col()
-            raise AttoSyntaxError(
-                f"Expected an {tok_type} at line: {line}, col: {col}")
+            raise AttoSyntaxError(f"Expected {tok_type}", tok)
 
         return tok
 
@@ -106,10 +107,17 @@ class Parser:
 
     def _parse_func(self) -> None:
         self._cur_func = Func(self._expect(TokenTypes.IDENT))
-        self.funcs[self._cur_func.nameTok.value()] = self._cur_func
+        self.funcs[self._cur_func.name_tok.value()] = self._cur_func
 
-        self._parse_fn_args(self._cur_func)
-        self._expect(TokenTypes.IS)
+        try:
+            self._parse_fn_args(self._cur_func)
+            self._expect(TokenTypes.IS)
+        except EOFerror:
+            last_tok = self._cur_func.parm[-1] \
+                        if self._cur_func.parm \
+                          else self._cur_func.name_tok
+            raise AttoSyntaxError(
+                f"Expected {TokenTypes.IS} near", last_tok)
 
         self._cur_func.body = self._parse_expr()
 
@@ -131,10 +139,8 @@ class Parser:
                         return ASTnode(tok) # reached end of chain
                     elif tok.text() in self.funcs:
                         return self._parse_call(tok)
-                    line, col = tok.line_col()
                     raise AttoSyntaxError(
-                        f"Could not find identifer {tok.text()}, " +
-                        f" at line: {line}, col: {col}")
+                        f"Could not find identifer {tok.text()}", tok)
                 case TokenTypes.STRING | TokenTypes.NUMBER | TokenTypes.TRUE | \
                     TokenTypes.FALSE | TokenTypes.NULL:
                     return ASTnode(tok) #reached epsilon
@@ -179,10 +185,8 @@ class Parser:
                 case TokenTypes.OUT:
                     return ASTnode(tok, self._parse_expr())
                 case _:
-                    line, col = tok.line_col()
-                    type = tok.type
                     raise AttoSyntaxError(
-                        f"Unexpected token: {type} at line: {line}, col: {col}")
+                        f"Unexpected token: {tok.type}", tok)
 
     def _parse_call(self, tok: Token):
         tok.type = TokenTypes.CALL

@@ -3,11 +3,23 @@
 from __future__ import annotations
 from enum import Enum
 from typing import List, Tuple
+from pathlib import Path
 
 class AttoSyntaxError(SyntaxError):
-    """A custom error when a syntax error occurs in atto source code."""
+    """A custom error when a syntax error occurs in atto source code.
 
-    pass
+    Parameters
+    ----------
+    msg : str
+        The message to show
+    tok : Token
+        The lexer token at given error
+    """
+
+    def __init__(self, msg: str, tok: Token):
+        line, col = tok.line_col()
+        path = tok.lexer.path
+        super().__init__(f"{msg} {path.name}:{line} col: {col}")
 
 class TokenTypes(Enum):
     """Lexical tokens """
@@ -191,6 +203,8 @@ class Lexer:
     ----------
     source : str
         The atto source text to tokenize
+    path : Path
+        Path to file where soruce came from.
 
     Returns
     -------
@@ -198,8 +212,9 @@ class Lexer:
 
     """
 
-    def __init__(self, source: str):
+    def __init__(self, source: str, path: Path):
         self.source: str = source
+        self.path: Path  = path
         self.tokens: List[Token] = []
         self._state = LexerStates.DEFAULT
         self._token = None
@@ -217,9 +232,7 @@ class Lexer:
                 else:
                     tok = Token(self, TokenTypes.FAIL, i)
                     tok.close(i+1)
-                    line, col = tok.line_col()
-                    raise AttoSyntaxError(
-                        f"Unrecognized char, line: {line} col: {col}")
+                    raise AttoSyntaxError("Unrecognized char", tok)
 
             elif self._state == LexerStates.NUMBER:
                 if not c.isdigit() and c != '.':
