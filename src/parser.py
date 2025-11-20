@@ -39,11 +39,14 @@ class Func:
         The tokens for each parameter (arguments)
     body : ASTnode
         A root for the AST tree for the body of this function
+    late_binding_start_pos : int
+        The body pos for this function, used to do late binding of identifiers
     """
     def __init__(self, name_tok: Token):
         self.name_tok: Token = name_tok
         self.parm: List[Token] = []
         self.body: ASTnode
+        self.late_binding_startpos: int
 
     def name(self) -> str:
         """Get the name of the function"""
@@ -90,6 +93,12 @@ class Parser:
         except IndexError:
             raise EOFerror()
 
+    def _last_body_pos(self):
+        while tok := self._next():
+            if tok.is_type(TokenTypes.FN):
+                self._back()
+                return self._pos
+
     def _expect(self, tok_type: TokenTypes) -> Token:
         tok = self._next()
         if not tok.is_type(tok_type):
@@ -101,11 +110,14 @@ class Parser:
         try:
             while True:
                 self._expect(TokenTypes.FN)
-                self._parse_func()
+                self._parse_func_sig()
         except EOFerror:
             pass
 
-    def _parse_func(self) -> None:
+        for func in self.funcs.values():
+            self._parse_late_binding(func)
+
+    def _parse_func_sig(self) -> None:
         self._cur_func = Func(self._expect(TokenTypes.IDENT))
         self.funcs[self._cur_func.name_tok.value()] = self._cur_func
 
@@ -119,7 +131,8 @@ class Parser:
             raise AttoSyntaxError(
                 f"Expected {TokenTypes.IS} near", last_tok)
 
-        self._cur_func.body = self._parse_expr()
+        self._cur_func.late_binding_startpos = self._pos
+        self._last_body_pos()
 
     def _parse_fn_args(self, func: Func) -> None:
         while tok := self._next():
@@ -127,6 +140,13 @@ class Parser:
                 self._back()
                 break
             func.parm.append(tok)
+
+    def _parse_late_binding(self, func: Func):
+        if func.late_binding_startpos is not None:
+            self._cur_func = func
+            self._pos = func.late_binding_startpos
+            func.body = self._parse_expr()
+            func.late_binding_startpos = None
 
     def _parse_expr(self) -> ASTnode:
         while tok := self._next():
@@ -140,7 +160,7 @@ class Parser:
                     elif tok.text() in self.funcs:
                         return self._parse_call(tok)
                     raise AttoSyntaxError(
-                        f"Could not find identifer {tok.text()}", tok)
+                        f"Could not find identifier {tok.text()} at", tok)
                 case TokenTypes.STRING | TokenTypes.NUMBER | TokenTypes.TRUE | \
                     TokenTypes.FALSE | TokenTypes.NULL:
                     return ASTnode(tok) #reached epsilon
@@ -186,7 +206,7 @@ class Parser:
                     return ASTnode(tok, self._parse_expr())
                 case _:
                     raise AttoSyntaxError(
-                        f"Unexpected token: {tok.type}", tok)
+                        f"Unexpected token: {tok.type} at", tok)
 
     def _parse_call(self, tok: Token):
         tok.type = TokenTypes.CALL

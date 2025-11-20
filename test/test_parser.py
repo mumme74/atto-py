@@ -119,10 +119,10 @@ class TestParserSyntaxError(unittest.TestCase):
             "Expected TokenTypes.IS near faker.at:1 col: 8",
             lambda: Parser(src, Path("fake/faker.at")))
 
-    def test_bad_faile_expect(self):
-        src = "fn main is if __eq 1 2 3 4 5"
+    def test_bad_unknown_identier(self):
+        src = "fn main is __print x"
         self.assertRaisesRegex(AttoSyntaxError,
-            "Expected TokenTypes.FN faker.at:1 col: 27",
+            "Could not find identifier x at faker.at:1 col: 19",
             lambda: Parser(src, Path("fake/faker.at")))
 
 
