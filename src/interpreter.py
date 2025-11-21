@@ -9,13 +9,13 @@ from sys import setrecursionlimit
 from src.parser import Parser, ASTnode, Func
 from src.lexer import TokenTypes, AttoSyntaxError
 
-# path to src folder
+# Path to src folder
 SRC_PATH = Path(__file__).absolute().parent
 
-# path to core lib
+# Path to core lib file
 CORE_LIB_PATH = SRC_PATH.parent / "corelib" / "core.at"
 
-# allow for complex factorials to work
+# Allow for complex factorials to not smash recursion limit
 setrecursionlimit(10**6)
 
 class AttoRuntimeError(RuntimeError):
@@ -27,7 +27,19 @@ _Vlu = Type[None | bool | float | str ]
 Value = Type[_Vlu| List[_Vlu]]
 
 class Frame:
-    """A context frame for each function call"""
+    """A context frame for each function call.
+    That is the the runtime info while fn is eceuted.
+
+    Attributes
+    ----------
+    caller : Frame
+        The frame that called this frame. The parent in a stacktrace.
+    args : List[Value]
+        Arguments for this frame
+    func : Func
+        The Func object, parsed representation of the function to execute
+    """
+
     def __init__(self, caller: Frame, args: List[Value], func: Func):
         self.caller = caller
         self.args = args
@@ -35,12 +47,34 @@ class Frame:
 
 
 class Interpreter:
+    """The interpreter class, executes the parsed source code.
+
+    It loads a source file or plain source text, lets the Parser parse it into
+    an AST tree, then walks that tree to execute our program.
+
+    By default it loads the atto corelib and mixes that into the function
+    signatures of our program. It is possible to exclude corelib, but not
+    recomended.
+
+    Attributes
+    ----------
+    use_codelib : bool
+        Wheater we use corelib, defaults to True
+    parser : Parser
+        The Parser instance that parsed the AST tree
+
+    Parameters
+    ----------
+    use_corelib : bool, optional(True)
+        Wheather we should load corelib, recomend to leave as is if not in
+        a unittest mode
+    """
 
     _corelib_code: str | None = None
     _corelib_funcs: Dict[str, Func] | None = None
 
     def __init__(self, use_corelib=True):
-        # initialize core lib
+        # initialize core lib as a singleton pattern
         if not Interpreter._corelib_code and use_corelib:
             with open(CORE_LIB_PATH, mode="r") as f:
                 Interpreter._corelib_code = f.read()
@@ -51,6 +85,18 @@ class Interpreter:
         self.use_corelib = use_corelib
 
     def exec_file(self, path: Path) -> int:
+        """Loads an atto source file as then executes it.
+
+        Parameters
+        ----------
+        path : Path
+            The path to the file to load, relative to project main.py file
+
+        Returns
+        -------
+        int : The result of the last execution in program
+        """
+
         try:
             with open(path, mode="r", encoding="utf8") as f:
                 source = f.read()
@@ -61,6 +107,17 @@ class Interpreter:
             return self.exec(source, path)
 
     def exec(self, source: str, path: Path|None = None) -> int:
+        """Execute atto source text and return the last execution result.
+
+        Parameters
+        ----------
+        source : str
+            The source text to execute
+        path : Path | None, Optional(None)
+            The path where source text came from.
+            Displays filename in error messages.
+        """
+
         funcs = deepcopy(Interpreter._corelib_funcs)
         if path is None:
             path = Path()
@@ -226,5 +283,5 @@ class Interpreter:
                 return self._eval_node(new_func.body, new_frm)
 
             case _:
-                raise RuntimeError(
+                raise AttoRuntimeError(
                     f"Unhandled token type {node.token.type}")
