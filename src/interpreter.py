@@ -7,7 +7,7 @@ from copy import deepcopy
 from sys import setrecursionlimit
 
 from src.parser import Parser, ASTnode, Func
-from src.lexer import TokenTypes, AttoSyntaxError
+from src.lexer import Token, TokenTypes, AttoSyntaxError
 
 # Path to src folder
 SRC_PATH = Path(__file__).absolute().parent
@@ -18,9 +18,52 @@ CORE_LIB_PATH = SRC_PATH.parent / "corelib" / "core.at"
 # Allow for complex factorials to not smash recursion limit
 setrecursionlimit(10**6)
 
+class AttoMissingMainError(RuntimeError):
+    """When main function is missing."""
+    def __init__(self, msg):
+        super().__init__(f"RuntimeError: {msg}")
+
+
 class AttoRuntimeError(RuntimeError):
-    """When a runtime error happens in the interpreter"""
-    pass
+    """When a runtimerror error happens"""
+    def __init__(self, msg: str, tok: Token, frame: Frame):
+        line, col = tok.line_col()
+        super().__init__(
+            f"RuntimeError: {msg} {tok.lexer.path.name}:{line} col: {col}")
+        self.frame = frame
+        self.tok   = tok
+
+    def traceback(self, limit: int=15) -> List[str]:
+        """Generate a traceback for this error.
+
+        Attributes
+        ----------
+        limit : int
+            Limit long backtraces to this length
+        """
+
+        tb = []
+        stack = 0
+        frm = self.frame
+        tok = self.tok
+        while frm and tok and limit - stack > 0:
+            line, col = tok.line_col()
+            file = tok.lexer.path.name
+            tb.append((f"Calling: {tok.text()} from within function {frm.func.name()} "
+                       f"at {file}:{line} col:{col}"))
+            limit -= 1
+            tok = frm.caller_tok
+            frm = frm.caller_frm
+
+        if frm:
+            tb.append('...')
+
+        return tb
+
+    def __str__(self):
+        msg = super().__str__()
+        return f"{msg}\n\nTraceback:\n{'\n'.join(self.traceback())}"
+
 
 # possible value types
 _Vlu = Type[None | bool | float | str ]
@@ -32,16 +75,20 @@ class Frame:
 
     Attributes
     ----------
-    caller : Frame
+    caller_frm : Frame
         The frame that called this frame. The parent in a stacktrace.
+    caller_tok : Token
+        The token that called this frame.
     args : List[Value]
         Arguments for this frame
     func : Func
         The Func object, parsed representation of the function to execute
     """
 
-    def __init__(self, caller: Frame, args: List[Value], func: Func):
-        self.caller = caller
+    def __init__(self, caller_frm: Frame, caller_tok: Token,
+                 args: List[Value], func: Func):
+        self.caller_frm = caller_frm
+        self.caller_tok = caller_tok
         self.args = args
         self.func = func
 
@@ -118,7 +165,7 @@ class Interpreter:
             Displays filename in error messages.
         """
 
-        funcs = deepcopy(Interpreter._corelib_funcs)
+        funcs = deepcopy(Interpreter._corelib_funcs) if self.use_corelib else {}
         if path is None:
             path = Path()
         try:
@@ -131,9 +178,10 @@ class Interpreter:
 
     def _eval(self) -> int:
         if not "main" in self.parser.funcs:
-            raise AttoRuntimeError(f"Function main is not found in the source.")
+            raise AttoMissingMainError(
+                    "Function main is not found in the source.")
 
-        frame = Frame(None, [], self.parser.funcs['main'])
+        frame = Frame(None, None, [], self.parser.funcs['main'])
         node = frame.func.body
         vlu = self._eval_node(node, frame)
 
@@ -239,8 +287,9 @@ class Interpreter:
                 # also catches when left is a list
                 line, col = node.left.token.line_col()
                 raise AttoRuntimeError(
-                    f"Failed to convert {node.left.token.value} to " +
-                        "number at line: {line}, col: {col}")
+                    (f"Failed to convert {node.left.token.value()} to "
+                     f"number at line: {line}, col: {col}"),
+                    node.token, frame)
 
             case TokenTypes.STR:
                 left = self._eval_node(node.left, frame)
@@ -279,9 +328,10 @@ class Interpreter:
                 #print("Calling", new_func.name(), "args", args, "from", node.token.line_col())
 
                 # do the call
-                new_frm = Frame(frame, args, new_func)
+                new_frm = Frame(frame, node.token, args, new_func)
                 return self._eval_node(new_func.body, new_frm)
 
             case _:
                 raise AttoRuntimeError(
-                    f"Unhandled token type {node.token.type}")
+                    f"Unhandled token type {node.token.type}",
+                    node.token, frame)

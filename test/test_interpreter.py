@@ -3,7 +3,9 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 
-from src.interpreter import Interpreter
+from src.interpreter import Interpreter, \
+                            AttoMissingMainError,\
+                            AttoRuntimeError
 
 test_dir = Path(__file__).absolute().parent
 
@@ -223,3 +225,41 @@ class TestLanguagePrimitives(unittest.TestCase):
     def test_fuse_strings(self):
         res = self.run_code("fn main is print fuse \"one\" \"two\"")
         self.assertEqual(res, "['one', 'two']\n")
+
+
+class TestError(unittest.TestCase):
+    def test_missing_main(self):
+        src = """fn test is print \"hej\""""
+        interp = Interpreter()
+        self.assertRaisesRegex(AttoMissingMainError,
+                               "main .* not found",
+                               lambda: interp.exec(src))
+
+    def test_runtime_error(self):
+        src = """
+        fn one is print litr "hej"
+        fn main is one
+        """
+        interp = Interpreter()
+        self.assertRaisesRegex(AttoRuntimeError,
+                               "Failed .* convert",
+                               lambda: interp.exec(src))
+
+    def test_runtime_treaceback(self):
+        src ="""
+        fn one is print litr "hej"
+        fn main is one
+        """
+        interp = Interpreter()
+        err = None
+        try:
+            interp.exec(src)
+        except AttoRuntimeError as e:
+            err = e
+        else:
+            raise Exception("Expected a AttoRuntimeError")
+        tb = err.traceback()
+        self.assertEqual(len(tb), 3)
+        self.assertRegex(tb[0], "__litr .* litr .* core.at")
+        self.assertRegex(tb[1], "litr .* one .* :2")
+        self.assertRegex(tb[2], "one .* main .* :3")

@@ -18,8 +18,7 @@ class AttoSyntaxError(SyntaxError):
 
     def __init__(self, msg: str, tok: Token):
         line, col = tok.line_col()
-        path = tok.lexer.path
-        super().__init__(f"{msg} {path.name}:{line} col: {col}")
+        super().__init__(f"{msg} {tok.lexer.path.name}:{line} col: {col}")
 
 class TokenTypes(Enum):
     """Lexical tokens """
