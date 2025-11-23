@@ -8,9 +8,19 @@ from pathlib import Path
 from src.interpreter import Interpreter
 
 def run_interpreter(script: Path):
-    """Runs the interpreter"""
-    interp = Interpreter()
-    interp.exec_file(script)
+    """Runs the interpreter
+
+    Parameters
+    ----------
+    script : Path
+        The path to the script file we want to execute
+    """
+
+    try:
+        interp = Interpreter()
+        interp.exec_file(script)
+    except KeyboardInterrupt:
+        print("Interupt signal, exiting atto interpreter...")
 
 def main():
     """Main function of our interpreter program"""

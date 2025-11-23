@@ -192,6 +192,31 @@ class Interpreter:
 
 
     def _eval_node(self, node: ASTnode, frame: Frame) -> Value:
+        """Evaluates each AST node recursivly
+
+        This is the tree-traversal method for each AST node.
+        A more grown up interpreter would use this step to compile to bytecode
+        instead and let the Intpreter stage come after the compile stage.
+        As atto is as simple as possible we evaluate directly from the AST tree.
+
+        Parameters
+        ----------
+        node : ASTnode
+            The node to evaluate
+        frame : Frame
+            The function frame currently executing.
+            When you think of a call stack, each entry in a callstack is a Frame
+
+        Returns
+        -------
+        Value : The result of current expression
+        """
+
+        # This function is a bit lengthy, although that is nothing compared to
+        # cpythons internal eval loop which in the past spanned several 1000 lines.
+        # doing this in one function, instead of delegating from a router function
+        # is actually simpler and more efficient (less call overhead and scattering).
+        # Each entry is rather neatly structured due to the match case construct.
         match node.token.type:
             case TokenTypes.IDENT:
                 name = node.token.text()
@@ -316,6 +341,7 @@ class Interpreter:
                     print("null")
                 else:
                     print(left)
+                return None
 
             case TokenTypes.CALL:
                 new_func = self.parser.funcs[node.token.text()]
@@ -325,7 +351,8 @@ class Interpreter:
                 while n := n.left:
                     args.append(self._eval_node(n.right, frame))
 
-                #print("Calling", new_func.name(), "args", args, "from", node.token.line_col())
+                # uncomment to debug interpreter function calls
+                # print("Calling", new_func.name(), "args", args, "from", node.token.line_col())
 
                 # do the call
                 new_frm = Frame(frame, node.token, args, new_func)
