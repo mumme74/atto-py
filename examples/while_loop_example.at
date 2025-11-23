@@ -1,0 +1,8 @@
+fn while condition is
+    if = true condition
+        # print "Continuing..."
+        while = input "Continue [Y/N]? " "Y"
+    null
+
+fn main is
+    while true

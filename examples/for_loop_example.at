@@ -1,0 +1,8 @@
+fn for10times i is
+    # print str fuse "called with i=" str i
+    if < i 10
+        for10times + i 1
+    null
+
+fn main is
+    for10times 0
