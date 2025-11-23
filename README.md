@@ -7,13 +7,13 @@ Mr Joshua Berretto, github user: zesterer, created this very simple language and
 That intepreter can be found at https://github.com/zesterer/atto/ and will henceforth be namned the reference implementation.
 
 ## Why create an interpreter in python?
-The purpose of this project is mostly the learning process for me. I am currently studying a course about code quality and programming principles given at Umeå university. That said, another person could just as well test and follow along if he/she wants to understande how a language engine works in an easier language than C. Pyhton should be simpler to follow along in.
+The purpose of this project is mostly the learning process for me. I am currently studying a course about code quality and programming principles given at Umeå university. That said, another person could just as well test and follow along if he/she wants to understande how a language engine works in an easier language than C. Python should be simpler to follow along in.
 
 ## The goal of this project
 My goal with this project is to get this interpreter to work with all examples in the examples directory in the reference implementation. Another goal is that the code and implementation should be documented enough so that a skilled python dev with limited langugage engine internals, should be able to grasp whats going on under the hood.
 
 ## Project limits
-This project does NOT intend to do any optimization efforts either in efficiency or in security. This is a learning tool, not a real langugage you would write real applications in.
+This project does NOT intend to do any optimization efforts either in efficiency or in security. This is a learning tool, not a real language you would write real applications in.
 
 ## Current state 
 Overall the functional part of the goals are satisfied. All examples from reference implementation does work.
@@ -36,7 +36,7 @@ The language only has two kinds of structures:
  and  
  ```<literal> [expression]```  
  where a literal can be any (almost) character.  
-For example **=** is a function from attos corelib  
+For example **=** is a function from atto's corelib  
   
 Each expression returns its evaluated value. The last evaluated value in a function is returned.
   
@@ -49,7 +49,7 @@ fn add x y is
   + x y
 ```
 
-This is abit strange at first, but makes the parser simpler.The equivalent in python would be:
+This is abit strange at first, but makes the parser simpler. The equivalent in python would be:
 ```python
 def add(x, y): 
   return x + y
@@ -60,7 +60,7 @@ The language does not have any significant whitespace. The parser does not care 
 A new function declaration just ends the previous function body. You do need to add space between words, as in any language.
 
 ## Identifiers
-The language allows for an identifier, such as a function- or variablename, to have almost any character. For example the equality **=** operator is actually a function in the corelib that in turn calls the internal function **__eq**
+The language allows for an identifier, such as a function- or variable-name, to have almost any character. For example the equality **=** operator is actually a function in the corelib that in turn calls the internal function **__eq**
 
 ## Functions
 A function is declared with this syntax: 
@@ -82,7 +82,7 @@ fn main is
 The value of the last evaluated expression in a function body is its implicit return value.
 
 ### Gothcha: function call:  
-As each function call just graps as many arguments from the caller as it needs. That means if yoou forget an argument, you wont get any error messages if there are more to grap from the caller function.
+As each function call just graps as many arguments from the caller as it needs. That means if you forget an argument, you wont get any error messages if there are more to grab from the caller function.
 ```
 fn multiply x, y is
     * x y
@@ -93,10 +93,10 @@ fn main is
   # "Function multiply will be called with args 100 and
      the result of calling print "done!", ie null"
 ```
-Note that as we forgot the second argument in the call to multiply, the parser just grabbed the next expressions value. In this case that is the result of the print call on the second row in the main function. Print returns null so this call is equivialent to: ```multiply 100 null``` with "done!" printed before the function call.
+Note that as we forgot the second argument in the call to multiply, the parser just grabbed the next expression's value. In this case that is the result of the print call on the second row in the main function. Print returns null so this call is equivialent to: ```multiply 100 null``` with "done!" printed before the function call.
   
 ## Function scope 
-Function scope is limited to current function only. There can not be any global variables nor any nested functions. A function can only work with what it gets as input as arguments from the caller.
+Function scope is limited to current function only. There can not be any global variables nor any nested functions. A function can only work with what it gets as arguments from the caller.
 
 ## Variables: unmutable
 Variables are defined as parameters to a function. The only way to set the value is as argument by the caller, inside the function body it is unmutable (Can't change value nor type).
@@ -215,7 +215,7 @@ fn while condition is
 fn main is
     while true
 ```
-Here we create a continous recursion loop due to until user answers other than 'Y'. Note that we create the condition while evaluating the argument for the next while call on row 3 inside the while function.
+Here we create a continous recursion loop until user answers other than 'Y'. Note that we create the condition while evaluating the argument for the next while call on row 3 inside the while function.
   
   
   
@@ -223,7 +223,7 @@ Here we create a continous recursion loop due to until user answers other than '
 -----
 
 # The atto Interpreter
-The section of the README is dedicated to the process from reading the source text to evaluating it results. It is not intended to be an exhaustive explaination. Just enogh to get an overview of how it works.
+This section of the README is dedicated to the process from reading the source text to evaluating it results. It is not intended to be an exhaustive explaination. Just enogh to get an overview of how it works.
 
 ## Definitions
 All language interpreters/compilers consists of some or all of these parts.
@@ -236,17 +236,17 @@ All language interpreters/compilers consists of some or all of these parts.
 
 - **Compiler**: Compiles the AST tree to bytecode or machinecode.
   - Converts the tree back to a flat list of instructions.
-  -  that a virtual machine or the actual CPU can follow.
-- **Bytecode** is used as input to a virtual machine, python, javscript etc. uses this technique.
-  - Even java and C# uses bytecode as input to its internal VM although the bytecode is compiled ahead of time instead of each end every time as in a scripted language.
-- **Machinecode** is read by a CPU as instructions. Targeting different CPUs requires different compilers.
+  - A virtual machine or the actual CPU can then follow these instructions.
+- **Bytecode** is used as input to a virtual machine: python, javscript etc. uses this technique.
+  - Even Java and C# uses bytecode as input to its internal VM although the bytecode is compiled ahead of time instead of each end every time as in a scripted language.
+- **Machinecode** is read by a CPU, as instructions. Targeting different CPUs requires different compilers.
   - ARM vs x86 has different instruction sets (ISA) as their respective instructions.
   - gcc, clang etc. have lexer, parser and compiler parts built into them. They produce a binary object that the CPU can later execute, even on a different machine as long as it has the same achitecture. If compiled for an operating system It must also match the operating system.
 
-- **VM** (Virtual machine): A program that takes instructions on one form and converts them into machinecode that the CPU can understand.
+- **VM** (Virtual machine): A program that takes instructions in one form and converts them into machinecode that the CPU can understand.
   - All scripting- and some compiled languages use a VM. In scripting langages the VM is built into the interpreter. 
   - In python for example, the VM is part of cpython as well as lexer, parser and compiler. As they are part of the same process, you don't have to think of them as separate parts.
-  - In Java the lexer, parser and compiler part is part of a program that is called a compiler that creates a java class object, which can be combined in a jar package. These are then, at later stage and on a different machine, executed by the Java Virtual Machine (JVM)
+  - In Java the lexer, parser and compiler is part of a program that is called a compiler that creates a java class object, which can be combined in a jar package. These are then, at later stage and on a different machine, executed by the Java Virtual Machine (JVM)
 
 ## Compiler pipeline i general
 The process of converting sourcecode to doing something usefull.
@@ -263,9 +263,9 @@ As the bytecode can be the same regardless of execution enviroment, the compiler
 It is possible to sidestep some of these steps to simplify an implementation. The reference implementation of atto does this, as well as this implementation of atto.
 More specifically we sidestep the Compiler and go directly to the VM step.  
 
-That means we evaluate direcly from the AST tree. This is slower that excuting from a flat list, but it makes the implementation simpler. This technique is call *Tree traversal* or *Walk the tree*.
+That means we evaluate direcly from the AST tree. This is slower than excuting from a flat list, but it makes the implementation simpler. This technique is call *Tree traversal* or *Walk the tree*.
   
-In this specific python based variant of the atto language we actually use the python VM as en extra step before the programinstructions reaches the CPU. A consequence of writing the interpreter in python.  
+In this specific python based variant of the atto language we actually use the python VM as en extra step before the program-instructions reaches the CPU. A consequence of writing the interpreter in python.  
   
 The pipeline here in this atto implementation:
 ```
@@ -276,7 +276,8 @@ Source-code
 
 In this implementation I name the VM object: Interpreter, and store it in the file interpreter.py in the src directory.
 
-Example src text used below:
+## More detailed description
+Example src text used in below descriptions:
 ```
 fn add x y is
     + x y
@@ -318,7 +319,7 @@ The Parser is implemented in the file parser.py, also located in the src directo
 
 It first parses all function signatures, then passes each and every function body. This is called *late binding* and is needed as a call to a function at the bottom of a script can't be accessed before we actually parsed its signature. Therefore we apply late binding to our parser.  
   
-*Sidenote:* In C and C++ we don't have late binding, we must therefore declare a function signature before we can use it.
+*Sidenote:* In C and C++ we don't have late binding, we must therefore declare function signatures before we can use them.
 
 If the Parser finds an error, such as function signatures does not match expected, it will generate an AttoSyntaxError.
 
@@ -359,12 +360,12 @@ It is implemented with a match - case structure that even though we do much in t
 ### Frame
 As the interpreter calls functions it needs to send some information to the called function. That is done by use of a Frame object, which hold a list of arguments, the caller token and the called function's name token.  
   
-This way a called function can get its argument values from the caller. Also if an AttoRuntimeError occurs, we can print a stack trace of the call-chain.
+This way a called function can get its argument values from the caller. Also if an AttoRuntimeError occurs, we can print a stack-trace of the call-chain.
 
 Each and every time a function is called a new Frame object is created, that means when a function calls itself recursively we also create a new Frame object.  
-If anyone would want to optimize there is a techinque called *tail call optimization* that gets around that recursive inefficiency.
+If anyone would want to optimize, there is a technique called *tail call optimization* that gets around that recursive inefficiency.
 
-While excuting given eaxmple above, these Call frame will be created.
+While excuting given eaxmple above, these call-frames will be created.
 ```
 1. Frame(caller_frm=None, caller_tok=None, args: [], Func(main, ...))
 2. Frame(caller_frm=main, caller_tok=Token("add"), args:[10, 20], Func(add, ...))
@@ -381,6 +382,6 @@ The output of given example will be: ```30``` printed to stdout.
 ## Summary
 The atto language implementation described here is a simple *Tree Traversal* implementation. As the syntax of the language is very simple, it also makes the internal parts of this project very simple. 
 
-However simple It still contains a Lexer, Parser and a VM to execute the AST parse tree. The Vm is implemented in the class Interpreter.
+However simple it isd, it still contains a Lexer, a Parser and a VM to execute the AST parse tree. The VM is implemented in the class Interpreter.
 
-Given this implementations simple internals, this should give anyone interested a fairly straightforward view about how language engines works internally.
+Given this implementations simple internals: Anyone interested in studying it, it should give a fairly straightforward view about how language engines works internally.
