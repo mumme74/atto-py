@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.interpreter import Interpreter
 
+
 def run_interpreter(script: Path):
     """Runs the interpreter
 
@@ -22,6 +23,7 @@ def run_interpreter(script: Path):
     except KeyboardInterrupt:
         print("Interupt signal, exiting atto interpreter...")
 
+
 def main():
     """Main function of our interpreter program"""
     argparser = ArgumentParser()
@@ -32,6 +34,7 @@ def main():
 
     script = Path(__file__).parent.absolute() / args.file
     run_interpreter(script)
+
 
 if __name__ == "__main__":
     main()

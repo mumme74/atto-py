@@ -3,24 +3,31 @@
 It is implemented as a simple recursive descent parser.
 Output is an Abstract syntax tree that the interpreter uses.
 """
+
 from __future__ import annotations
 from typing import Dict, List
 from src.lexer import Token, TokenTypes, Lexer, AttoSyntaxError
 from pathlib import Path
 
+
 class EOFerror(Exception):
     """Used to indicate END of file"""
+
     pass
+
 
 class ASTnode:
     """A node in the Abstract syntax tree"""
-    def __init__(self,
-                 token: Token | None = None,
-                 left: ASTnode | None = None,
-                 right: ASTnode |None = None):
-        self.left:  ASTnode | None = left
+
+    def __init__(
+        self,
+        token: Token | None = None,
+        left: ASTnode | None = None,
+        right: ASTnode | None = None,
+    ):
+        self.left: ASTnode | None = left
         self.right: ASTnode | None = right
-        self.token: Token   | None = token
+        self.token: Token | None = token
 
 
 class Func:
@@ -42,6 +49,7 @@ class Func:
     late_binding_start_pos : int
         The body pos for this function, used to do late binding of identifiers
     """
+
     def __init__(self, name_tok: Token):
         self.name_tok: Token = name_tok
         self.parm: List[Token] = []
@@ -77,15 +85,14 @@ class Parser:
         Functions already parsed, used for corelib
     """
 
-    def __init__(self, source: str, path: Path,
-                 funcs: Dict[str, Func]|None=None):
+    def __init__(self, source: str, path: Path, funcs: Dict[str, Func] | None = None):
         self.lexer = Lexer(source, path)
         self._pos = -1
         self.funcs: Dict[str, Func] = {} if funcs is None else funcs
         self._parse_funcs()
 
     def _back(self) -> None:
-        self._pos = self._pos -1 if self._pos > -1 else -1
+        self._pos = self._pos - 1 if self._pos > -1 else -1
 
     def _next(self) -> Token:
         self._pos += 1
@@ -126,11 +133,12 @@ class Parser:
             self._parse_fn_args(self._cur_func)
             self._expect(TokenTypes.IS)
         except EOFerror:
-            last_tok = self._cur_func.parm[-1] \
-                        if self._cur_func.parm \
-                          else self._cur_func.name_tok
-            raise AttoSyntaxError(
-                f"Expected {TokenTypes.IS} near", last_tok)
+            last_tok = (
+                self._cur_func.parm[-1]
+                if self._cur_func.parm
+                else self._cur_func.name_tok
+            )
+            raise AttoSyntaxError(f"Expected {TokenTypes.IS} near", last_tok)
 
         self._cur_func.late_binding_startpos = self._pos
         self._last_body_pos()
@@ -153,28 +161,35 @@ class Parser:
         while tok := self._next():
             match tok.type:
                 case TokenTypes.FN:
-                    self._back() #reached end of function body
+                    self._back()  # reached end of function body
                     return None
                 case TokenTypes.IDENT:
                     if tok.text() in self._cur_func.params():
-                        return ASTnode(tok) # reached end of chain
+                        return ASTnode(tok)  # reached end of chain
                     elif tok.text() in self.funcs:
                         return self._parse_call(tok)
                     raise AttoSyntaxError(
-                        f"Could not find identifier {tok.text()} at", tok)
-                case TokenTypes.STRING | TokenTypes.NUMBER | TokenTypes.TRUE | \
-                    TokenTypes.FALSE | TokenTypes.NULL:
-                    return ASTnode(tok) #reached epsilon
+                        f"Could not find identifier {tok.text()} at", tok
+                    )
+                case (
+                    TokenTypes.STRING
+                    | TokenTypes.NUMBER
+                    | TokenTypes.TRUE
+                    | TokenTypes.FALSE
+                    | TokenTypes.NULL
+                ):
+                    return ASTnode(tok)  # reached epsilon
                 case TokenTypes.IF:
-                    node = ASTnode(tok, self._parse_expr(),
-                               ASTnode(None,
-                                       self._parse_expr(),
-                                       self._parse_expr()))
+                    node = ASTnode(
+                        tok,
+                        self._parse_expr(),
+                        ASTnode(None, self._parse_expr(), self._parse_expr()),
+                    )
                     if node.left is None:
                         raise AttoSyntaxError("Expected if condition", tok)
-                    elif node.right.left is None: # type: ignore[union-attr]
+                    elif node.right.left is None:  # type: ignore[union-attr]
                         raise AttoSyntaxError("Expected true expression", tok)
-                    elif node.right.right is None: # type: ignore[union-attr]
+                    elif node.right.right is None:  # type: ignore[union-attr]
                         raise AttoSyntaxError("Expected false expression", tok)
                     return node
                 case TokenTypes.ADD:
@@ -213,8 +228,7 @@ class Parser:
                 case TokenTypes.OUT:
                     return ASTnode(tok, self._parse_expr())
                 case _:
-                    raise AttoSyntaxError(
-                        f"Unexpected token: {tok.type} at", tok)
+                    raise AttoSyntaxError(f"Unexpected token: {tok.type} at", tok)
         return None
 
     def _parse_call(self, tok: Token):
@@ -232,4 +246,3 @@ class Parser:
                 n = n.left
 
         return node
-
