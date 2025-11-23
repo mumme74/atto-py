@@ -45,12 +45,12 @@ class Func:
     def __init__(self, name_tok: Token):
         self.name_tok: Token = name_tok
         self.parm: List[Token] = []
-        self.body: ASTnode
-        self.late_binding_startpos: int
+        self.body: ASTnode | None
+        self.late_binding_startpos: int | None
 
     def name(self) -> str:
         """Get the name of the function"""
-        return self.name_tok.value()
+        return self.name_tok.text()
 
     def params(self):
         """Get a list of param names"""
@@ -77,13 +77,14 @@ class Parser:
         Functions already parsed, used for corelib
     """
 
-    def __init__(self, source: str, path: Path, funcs: Dict[str, Func]=None):
+    def __init__(self, source: str, path: Path,
+                 funcs: Dict[str, Func]|None=None):
         self.lexer = Lexer(source, path)
         self._pos = -1
         self.funcs: Dict[str, Func] = {} if funcs is None else funcs
         self._parse_funcs()
 
-    def _back(self) -> Token:
+    def _back(self) -> None:
         self._pos = self._pos -1 if self._pos > -1 else -1
 
     def _next(self) -> Token:
@@ -119,7 +120,7 @@ class Parser:
 
     def _parse_func_sig(self) -> None:
         self._cur_func = Func(self._expect(TokenTypes.IDENT))
-        self.funcs[self._cur_func.name_tok.value()] = self._cur_func
+        self.funcs[self._cur_func.name_tok.text()] = self._cur_func
 
         try:
             self._parse_fn_args(self._cur_func)
@@ -148,7 +149,7 @@ class Parser:
             func.body = self._parse_expr()
             func.late_binding_startpos = None
 
-    def _parse_expr(self) -> ASTnode:
+    def _parse_expr(self) -> ASTnode | None:
         while tok := self._next():
             match tok.type:
                 case TokenTypes.FN:
@@ -165,10 +166,17 @@ class Parser:
                     TokenTypes.FALSE | TokenTypes.NULL:
                     return ASTnode(tok) #reached epsilon
                 case TokenTypes.IF:
-                    return ASTnode(tok, self._parse_expr(),
+                    node = ASTnode(tok, self._parse_expr(),
                                ASTnode(None,
                                        self._parse_expr(),
                                        self._parse_expr()))
+                    if node.left is None:
+                        raise AttoSyntaxError("Expected if condition", tok)
+                    elif node.right.left is None: # type: ignore[union-attr]
+                        raise AttoSyntaxError("Expected true expression", tok)
+                    elif node.right.right is None: # type: ignore[union-attr]
+                        raise AttoSyntaxError("Expected false expression", tok)
+                    return node
                 case TokenTypes.ADD:
                     return ASTnode(tok, self._parse_expr(), self._parse_expr())
                 case TokenTypes.NEG:
@@ -207,6 +215,7 @@ class Parser:
                 case _:
                     raise AttoSyntaxError(
                         f"Unexpected token: {tok.type} at", tok)
+        return None
 
     def _parse_call(self, tok: Token):
         tok.type = TokenTypes.CALL

@@ -216,7 +216,7 @@ class Lexer:
         self.path: Path  = path
         self.tokens: List[Token] = []
         self._state = LexerStates.DEFAULT
-        self._token = None
+        self._token: Token | None = None
 
         for i, c in enumerate(source):
             if self._state == LexerStates.DEFAULT:
@@ -254,7 +254,8 @@ class Lexer:
         self._token = Token(self, type, pos)
 
     def _end_token(self, end_pos: int):
-        self._token.close(end_pos)
-        self.tokens.append(self._token)
+        if self._token:
+            self._token.close(end_pos)
+            self.tokens.append(self._token)
         self._token = None
         self._state = LexerStates.DEFAULT

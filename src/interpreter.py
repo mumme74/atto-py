@@ -1,7 +1,7 @@
 """This module executes the actual atto code."""
 
 from __future__ import annotations
-from typing import Dict, List, Type
+from typing import Dict, List, Union, cast
 from pathlib import Path
 from copy import deepcopy
 from sys import setrecursionlimit
@@ -17,6 +17,9 @@ CORE_LIB_PATH = SRC_PATH.parent / "corelib" / "core.at"
 
 # Allow for complex factorials to not smash recursion limit
 setrecursionlimit(10**6)
+
+# possible value types
+Value = Union[None | bool | float | str | List[None | bool | float | str]]
 
 class AttoMissingMainError(RuntimeError):
     """When main function is missing."""
@@ -44,8 +47,8 @@ class AttoRuntimeError(RuntimeError):
 
         tb = []
         stack = 0
-        frm = self.frame
-        tok = self.tok
+        frm: Frame | None = self.frame
+        tok: Token | None = self.tok
         while frm and tok and limit - stack > 0:
             line, col = tok.line_col()
             file = tok.lexer.path.name
@@ -65,10 +68,6 @@ class AttoRuntimeError(RuntimeError):
         return f"{msg}\n\nTraceback:\n{'\n'.join(self.traceback())}"
 
 
-# possible value types
-_Vlu = Type[None | bool | float | str ]
-Value = Type[_Vlu| List[_Vlu]]
-
 class Frame:
     """A context frame for each function call.
     That is the the runtime info while fn is eceuted.
@@ -85,7 +84,7 @@ class Frame:
         The Func object, parsed representation of the function to execute
     """
 
-    def __init__(self, caller_frm: Frame, caller_tok: Token,
+    def __init__(self, caller_frm: Frame | None, caller_tok: Token | None,
                  args: List[Value], func: Func):
         self.caller_frm = caller_frm
         self.caller_tok = caller_tok
@@ -185,13 +184,20 @@ class Interpreter:
         node = frame.func.body
         vlu = self._eval_node(node, frame)
 
-        try:
+        if vlu is None:
+            return 0
+        elif isinstance(vlu, float):
             return int(vlu)
-        except (TypeError, ValueError):
+        elif isinstance(vlu, str):
+            try:
+                return int(vlu)
+            except (TypeError, ValueError):
+                return 0
+        else:
             return 0
 
 
-    def _eval_node(self, node: ASTnode, frame: Frame) -> Value:
+    def _eval_node(self, node: ASTnode | None, frame: Frame) -> Value:
         """Evaluates each AST node recursivly
 
         This is the tree-traversal method for each AST node.
@@ -217,6 +223,9 @@ class Interpreter:
         # doing this in one function, instead of delegating from a router function
         # is actually simpler and more efficient (less call overhead and scattering).
         # Each entry is rather neatly structured due to the match case construct.
+        assert node is not None
+        assert node.token is not None
+
         match node.token.type:
             case TokenTypes.IDENT:
                 name = node.token.text()
@@ -229,36 +238,48 @@ class Interpreter:
             case TokenTypes.IF:
                 expr = self._eval_node(node.left, frame)
                 if expr:
-                    return self._eval_node(node.right.left, frame)
+                    return self._eval_node(node.right.left, frame)# type: ignore [union-attr]
                 else:
-                    return self._eval_node(node.right.right, frame)
+                    return self._eval_node(node.right.right, frame)# type: ignore [union-attr]
 
             case TokenTypes.ADD:
-                left = self._eval_node(node.left, frame)
-                right = self._eval_node(node.right, frame)
-                return left + right
+                # The parser ensures node left and node right are populated.
+                left = self._eval_node(node.left, frame) # type: ignore [union-attr]
+                right = self._eval_node(node.right, frame) # type: ignore [union-attr]
+                self.check_type(left, (float, str), node.left, frame)
+                self.check_type(right, (float, str), node.right, frame)
+                return left + right # type: ignore [operator]
 
             case TokenTypes.NEG:
-                return -self._eval_node(node.left, frame)
+                vlu = self._eval_node(node.left, frame)
+                self.check_type(vlu, (float,), node, frame)
+                return -vlu # type: ignore [operator]
 
             case TokenTypes.MUL:
                 left = self._eval_node(node.left, frame)
                 right = self._eval_node(node.right, frame)
-                return left * right
+                self.check_type(left, (float,), node.right, frame)
+                self.check_type(right, (float,), node.right, frame)
+                return left * right # type: ignore [operator]
 
             case TokenTypes.DIV:
                 left = self._eval_node(node.left, frame)
                 right = self._eval_node(node.right, frame)
-                return left / right
+                self.check_type(left, (float,), node.right, frame)
+                self.check_type(right, (float,), node.right, frame)
+                return left / right # type: ignore [operator]
 
             case TokenTypes.INV:
                 left = self._eval_node(node.left, frame)
-                return 1 / left
+                self.check_type(left, (float,), node.right, frame)
+                return 1 / left # type: ignore [operator]
 
             case TokenTypes.REM:
                 left = self._eval_node(node.left, frame)
                 right = self._eval_node(node.right, frame)
-                return left % right
+                self.check_type(left, (float,), node.right, frame)
+                self.check_type(right, (float,), node.right, frame)
+                return left % right # type: ignore [operator]
 
             case TokenTypes.EQ:
                 left = self._eval_node(node.left, frame)
@@ -268,7 +289,9 @@ class Interpreter:
             case TokenTypes.LESS:
                 left = self._eval_node(node.left, frame)
                 right = self._eval_node(node.right, frame)
-                return left < right
+                self.check_type(left, (float, str), node.right, frame)
+                self.check_type(right, (float, str), node.right, frame)
+                return left < right # type: ignore [operator]
 
             case TokenTypes.HEAD:
                 left = self._eval_node(node.left, frame)
@@ -285,7 +308,7 @@ class Interpreter:
             case TokenTypes.PAIR:
                 left = self._eval_node(node.left, frame)
                 right = self._eval_node(node.right, frame)
-                return [left, right]
+                return cast(Value, [left, right])
 
             case TokenTypes.FUSE:
                 left = self._eval_node(node.left, frame)
@@ -293,12 +316,12 @@ class Interpreter:
 
                 if isinstance(left, list):
                     if isinstance(right, list):
-                        return left + right
+                        return cast(Value, left + right)
                     left.append(right)
-                    return left
+                    return cast(Value, left)
                 elif isinstance(right, list):
-                    return [left] + right
-                return [left, right]
+                    return cast(Value, [left] + right)
+                return cast(Value, [left, right])
 
             case TokenTypes.LITR:
                 left = self._eval_node(node.left, frame)
@@ -310,9 +333,10 @@ class Interpreter:
                     except ValueError:
                         pass
                 # also catches when left is a list
-                line, col = node.left.token.line_col()
+                line, col = node.left.token.line_col() # type: ignore [union-attr]
+                value = node.left.token.value() # type: ignore [union-attr]
                 raise AttoRuntimeError(
-                    (f"Failed to convert {node.left.token.value()} to "
+                    (f"Failed to convert {value} to "
                      f"number at line: {line}, col: {col}"),
                     node.token, frame)
 
@@ -326,7 +350,7 @@ class Interpreter:
             case TokenTypes.WORDS:
                 left = self._eval_node(node.left, frame)
                 if isinstance(left, str):
-                    return left.split()
+                    return cast(Value, left.split())
 
             case TokenTypes.IN:
                 if node.left:
@@ -347,8 +371,8 @@ class Interpreter:
                 new_func = self.parser.funcs[node.token.text()]
                 # get the args
                 args = []
-                n = node
-                while n := n.left:
+                n:ASTnode = node
+                while n := n.left: # type: ignore [assignment]
                     args.append(self._eval_node(n.right, frame))
 
                 # uncomment to debug interpreter function calls
@@ -362,3 +386,28 @@ class Interpreter:
                 raise AttoRuntimeError(
                     f"Unhandled token type {node.token.type}",
                     node.token, frame)
+
+        return None # make mypy happy
+
+    def check_type(self, vlu: Value, types: tuple, node: ASTnode|None, frm: Frame):
+        """Checks whether type is of type, raises an error otherwise
+
+        Parameters
+        ----------
+        vlu : Value
+            The value to check
+        types : tuple[any]
+            A list of valid types
+        node : ASTnode
+            The ASTnode to generate the error from
+        frm : Frame
+            The frame to generate the error from
+        """
+
+        for t in types:
+            if isinstance(vlu, t):
+                return
+
+        assert node is not None
+        msg = f"Expected types {[type(t) for t in types]} but got {type(vlu)}"
+        raise AttoRuntimeError(msg, node.token, frm) # type: ignore [arg-type]
