@@ -127,6 +127,39 @@ def is_within_window2(vlu, lower, upper):
 ## Comments
 All expressions in atto must be chained together in an expression chain. Even comments are actually an expression that simply has the value of the expression directly after it. That is the reason for the need to use strings for a comment.
 
+## Expression chain
+As all expressions in a functions body must be connected together, with each instruction linking to the next expression, like links in a chain, we call that an *expression chain*. An expression ends when it reaches a value, or null.  
+
+Example of the **incorrect** thing to do:
+```
+fn test x is
+  print "inside test"
+  if = null x
+     "is null"
+  "is not null"
+```
+Note that print returns null, so it ends the expression chain, therefore the if expression below it, becomes an orhan. That means it does not connect to the function body. The function body in this case ends with the print expression. This is a sideeffect of only having expressions, not statements, in the language.
+
+Example of the correct way to chain together expressions.
+```
+fn test x is
+  # print "inside test"
+  if = null x
+     "is null"
+  "is not null"
+```
+As the # lets the print expression execute, but returns the value after it, it links function body with the if expression.
+
+Another example where you want the ignored stuff after th if expression.
+```
+fn test x is
+  @ if = null x
+     "is null"
+    "is not null"
+  print "inside test"
+```
+Note that the @ connects two epressions together, just like the # does, but it returns the first value instead.
+
 ## Keywords
 The keywords in atto language are:
 ```

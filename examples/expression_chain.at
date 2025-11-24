@@ -1,0 +1,15 @@
+fn test# x is
+  # print "inside test#"
+  if = null x
+     "x is null"
+  "x is not null"
+
+fn test@ x is
+  @ if = null x
+     "x is null"
+    "x is not null"
+  print "inside test@"
+
+fn main is
+   @ print test@ 1
+   print test# null
