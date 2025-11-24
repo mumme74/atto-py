@@ -3,13 +3,15 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 
-from src.interpreter import Interpreter, \
-                            AttoMissingMainError,\
-                            AttoRuntimeError
+from src.interpreter import Interpreter, AttoMissingMainError, AttoRuntimeError
 
-test_dir = Path(__file__).absolute().parent
+TEST_DIR = Path(__file__).absolute().parent
+TEST_DATA_DIR = TEST_DIR.parent / "test_data"
+
 
 class TestInterpreter(unittest.TestCase):
+    """Tests that interpreter works"""
+
     def setUp(self):
         Interpreter._corelib_funcs = None
         Interpreter._corelib_code = None
@@ -24,10 +26,12 @@ class TestInterpreter(unittest.TestCase):
         interp = Interpreter(False)
         f = StringIO()
         with redirect_stdout(f):
-            interp.exec("""
+            interp.exec(
+                """
                 fn main is
                     __print "Hello world"
-            """)
+            """
+            )
         self.assertEqual(f.getvalue(), "Hello world\n")
 
     def test_init(self):
@@ -39,10 +43,12 @@ class TestInterpreter(unittest.TestCase):
         interp = Interpreter()
         f = StringIO()
         with redirect_stdout(f):
-            interp.exec("""
+            interp.exec(
+                """
                 fn main is
                     print "Hello world"
-            """)
+            """
+            )
         self.assertEqual(f.getvalue(), "Hello world\n")
 
     def test_count_300(self):
@@ -65,20 +71,27 @@ class TestInterpreter(unittest.TestCase):
         interp = Interpreter()
         f = StringIO()
         with redirect_stdout(f):
-            interp.exec_file(test_dir / "factorial_testcode.at")
+            interp.exec_file(TEST_DATA_DIR / "factorial_testcode.at")
 
-        self.assertEqual(f.getvalue(), '\n'.join(
-                         ["fact(0.0) = 1.0",
-                          "fact(1.0) = 1.0",
-                          "fact(2.0) = 2.0",
-                          "fact(3.0) = 6.0",
-                          "fact(4.0) = 24.0",
-                          "fact(5.0) = 120.0",
-                          "fact(6.0) = 720.0",
-                          ""]))
+        self.assertEqual(
+            f.getvalue(),
+            "\n".join(
+                [
+                    "fact(0.0) = 1.0",
+                    "fact(1.0) = 1.0",
+                    "fact(2.0) = 2.0",
+                    "fact(3.0) = 6.0",
+                    "fact(4.0) = 24.0",
+                    "fact(5.0) = 120.0",
+                    "fact(6.0) = 720.0",
+                    "",
+                ]
+            ),
+        )
 
 
 class TestLanguagePrimitives(unittest.TestCase):
+    """Tests that the build in language primitives works as expected"""
 
     def run_code(self, source):
         interp = Interpreter()
@@ -109,49 +122,59 @@ class TestLanguagePrimitives(unittest.TestCase):
         self.assertEqual(res, "null\n")
 
     def test_ident(self):
-        res = self.run_code("""
+        res = self.run_code(
+            """
             fn ident_test x is
                 print x
 
             fn main is
                 ident_test 34
-        """)
+        """
+        )
         self.assertEqual(res, "34.0\n")
 
     def test_if_eq_first(self):
-        res = self.run_code("""
+        res = self.run_code(
+            """
             fn main is
                 print if = 1 1
                     "equal"
                     "not equal"
-        """)
+        """
+        )
         self.assertEqual(res, "equal\n")
 
     def test_if_eq_second(self):
-        res = self.run_code("""
+        res = self.run_code(
+            """
             fn main is
                 print if = 1 2
                     "equal"
                     "not equal"
-        """)
+        """
+        )
         self.assertEqual(res, "not equal\n"),
 
     def test_if_lt_first(self):
-        res = self.run_code("""
+        res = self.run_code(
+            """
             fn main is
                 print if < 1 2
                     "equal"
                     "not equal"
-        """)
+        """
+        )
         self.assertEqual(res, "equal\n")
 
     def test_if_lt_second(self):
-        res = self.run_code("""
+        res = self.run_code(
+            """
             fn main is
                 print if < 2 1
                     "equal"
                     "not equal"
-        """)
+        """
+        )
         self.assertEqual(res, "not equal\n")
 
     def test_add(self):
@@ -179,11 +202,11 @@ class TestLanguagePrimitives(unittest.TestCase):
         self.assertEqual(res, "12.0\n")
 
     def test_litr(self):
-        res = self.run_code("fn main is print + litr \"10\" 5")
+        res = self.run_code('fn main is print + litr "10" 5')
         self.assertEqual(res, "15.0\n")
 
     def test_words(self):
-        res = self.run_code("fn main is print words \"this is a sentence.\"")
+        res = self.run_code('fn main is print words "this is a sentence."')
         self.assertEqual(res, "['this', 'is', 'a', 'sentence.']\n")
 
     def test_pair(self):
@@ -195,7 +218,7 @@ class TestLanguagePrimitives(unittest.TestCase):
         self.assertEqual(res, "1.0\n")
 
     def test_head_str(self):
-        res = self.run_code("fn main is print head \"string\"")
+        res = self.run_code('fn main is print head "string"')
         self.assertEqual(res, "s\n")
 
     def test_tail_list(self):
@@ -203,7 +226,7 @@ class TestLanguagePrimitives(unittest.TestCase):
         self.assertEqual(res, "[2.0, 3.0]\n")
 
     def test_tail_str(self):
-        res = self.run_code("fn main is print tail \"string\"")
+        res = self.run_code('fn main is print tail "string"')
         self.assertEqual(res, "tring\n")
 
     def test_fuse_lists(self):
@@ -223,17 +246,18 @@ class TestLanguagePrimitives(unittest.TestCase):
         self.assertEqual(res, "[1.0, 2.0]\n")
 
     def test_fuse_strings(self):
-        res = self.run_code("fn main is print fuse \"one\" \"two\"")
+        res = self.run_code('fn main is print fuse "one" "two"')
         self.assertEqual(res, "['one', 'two']\n")
 
 
 class TestError(unittest.TestCase):
+    """Test that errors are raised as they should"""
+
     def test_missing_main(self):
         src = """fn test is print \"hej\""""
         interp = Interpreter()
-        self.assertRaisesRegex(AttoMissingMainError,
-                               "main .* not found",
-                               lambda: interp.exec(src))
+        with self.assertRaisesRegex(AttoMissingMainError, "main .* not found"):
+            interp.exec(src)
 
     def test_runtime_error(self):
         src = """
@@ -241,12 +265,11 @@ class TestError(unittest.TestCase):
         fn main is one
         """
         interp = Interpreter()
-        self.assertRaisesRegex(AttoRuntimeError,
-                               "Failed .* convert",
-                               lambda: interp.exec(src))
+        with self.assertRaisesRegex(AttoRuntimeError, "Failed .* convert"):
+            interp.exec(src)
 
     def test_runtime_treaceback(self):
-        src ="""
+        src = """
         fn one is print litr "hej"
         fn main is one
         """

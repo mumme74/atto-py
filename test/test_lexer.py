@@ -5,6 +5,8 @@ from src.lexer import Token, TokenTypes, Lexer, AttoSyntaxError
 from mocks import MockLexer
 
 class TestTokenBuild(unittest.TestCase):
+    """Tests that Token builds properly"""
+
     def setUp(self):
         self.mocklex = MockLexer("__eq 1 1")
         self.tok = Token(self.mocklex, TokenTypes.IDENT, 0)
@@ -33,6 +35,8 @@ class TestTokenBuild(unittest.TestCase):
         self.assertEqual(tok.text(), "1")
 
 class TestTextValue(unittest.TestCase):
+    """Tests that Token reports text and value correctly"""
+
     def test_text_string(self):
         mocklex = MockLexer('"This is a string."')
         tok = Token(mocklex, TokenTypes.STRING, 0)
@@ -57,6 +61,8 @@ class TestTextValue(unittest.TestCase):
 
 
 class TestTokenLineCol(unittest.TestCase):
+    """Tests that Token reports line and column correctly"""
+
     def create(self, pos):
         self.mocklex = MockLexer("if < 1 2\n print 2")
         return Token(self.mocklex, TokenTypes.IDENT, pos)
@@ -85,6 +91,8 @@ class TestTokenLineCol(unittest.TestCase):
 
 
 class TestLexer(unittest.TestCase):
+    """Tests that Lexer can tokenize as expected"""
+
     def test_empty(self):
         lex = Lexer("", Path())
         self.assertEqual(len(lex.tokens), 0)
@@ -134,6 +142,8 @@ class TestLexer(unittest.TestCase):
 
 
 class TestAttoSyntaxError(unittest.TestCase):
+    """Tests that AttoSyntaxError works"""
+
     def test_init(self):
         lex = Lexer(" 1245", Path("fake/fakefile.at"))
         tok = lex.tokens[0]
@@ -141,9 +151,8 @@ class TestAttoSyntaxError(unittest.TestCase):
         self.assertEqual(err.msg, "TestError fakefile.at:1 col: 1")
 
     def test_lex_raise(self):
-        self.assertRaisesRegex(AttoSyntaxError,
-            "Unrecognized char faker.at:2 col: 1",
-            lambda: Lexer("\n \b", Path("fake/faker.at")))
+        with self.assertRaisesRegex(AttoSyntaxError, "Unrecognized char faker.at:2 col: 1"):
+            Lexer("\n \b", Path("fake/faker.at"))
 
 
 if __name__ == "__main__":
