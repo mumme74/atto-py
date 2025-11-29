@@ -82,7 +82,6 @@ class TestTokenLineCol(unittest.TestCase):
         self.assertEqual(col, 3)
 
     def test_line_col_line2(self):
-        mocklex = MockLexer("if < 1 2\n print 2")
         tok = self.create(10)
         tok.close(15)
         line, col = tok.line_col()
