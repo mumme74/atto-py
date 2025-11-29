@@ -133,7 +133,7 @@ class TestParserSyntaxError(unittest.TestCase):
         ):
             Parser(src, Path("fake/faker.at"))
 
-    def test_bad_unknown_identier(self):
+    def test_bad_unknown_identifier(self):
         src = "fn main is __print x"
         with self.assertRaisesRegex(
             AttoSyntaxError, "Could not find identifier x at faker.at:1 col: 19"

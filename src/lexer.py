@@ -68,7 +68,7 @@ class TokenTypes(Enum):
 class Token:
     """Hold info for one lexical token
 
-    Paramters
+    Parameters
     ---------
     lexer : Lexer
         The lexer that created this token
@@ -77,7 +77,7 @@ class Token:
     start_pos : int
         The pos in lexer.source that this token starts at
     end_pos : int, Optional
-        The endpos in source string, if given closes Token directly
+        The end-position in source string, if given closes Token directly
 
     """
 
@@ -170,7 +170,7 @@ class Token:
 
         If a string it will strip "..." => ...
         If a number convert to a float and return
-        All other return the text in the sorurce text
+        All other return the text in the source text
 
         Returns
         -------
@@ -232,7 +232,7 @@ class Lexer:
     source : str
         The atto source text to tokenize
     path : Path
-        Path to file where soruce came from.
+        Path to file where source came from.
 
     Returns
     -------

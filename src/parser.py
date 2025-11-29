@@ -54,7 +54,7 @@ class Func:
         self.name_tok: Token = name_tok
         self.parm: List[Token] = []
         self.body: ASTnode | None
-        self.late_binding_startpos: int | None
+        self.late_binding_start_pos: int | None
 
     def name(self) -> str:
         """Get the name of the function"""
@@ -140,7 +140,7 @@ class Parser:
             )
             raise AttoSyntaxError(f"Expected {TokenTypes.IS} near", last_tok)
 
-        self._cur_func.late_binding_startpos = self._pos
+        self._cur_func.late_binding_start_pos = self._pos
         self._last_body_pos()
 
     def _parse_fn_args(self, func: Func) -> None:
@@ -151,11 +151,11 @@ class Parser:
             func.parm.append(tok)
 
     def _parse_late_binding(self, func: Func):
-        if func.late_binding_startpos is not None:
+        if func.late_binding_start_pos is not None:
             self._cur_func = func
-            self._pos = func.late_binding_startpos
+            self._pos = func.late_binding_start_pos
             func.body = self._parse_expr()
-            func.late_binding_startpos = None
+            func.late_binding_start_pos = None
 
     def _parse_expr(self) -> ASTnode | None:
         while tok := self._next():

@@ -18,17 +18,17 @@ def run_interpreter(script: Path):
     """
 
     try:
-        interp = Interpreter()
-        interp.exec_file(script)
+        interpreter = Interpreter()
+        interpreter.exec_file(script)
     except KeyboardInterrupt:
-        print("Interupt signal, exiting atto interpreter...")
+        print("Interrupt signal, exiting atto interpreter...")
 
 
 def main():
     """Main function of our interpreter program"""
-    argparser = ArgumentParser()
-    argparser.add_argument("file", help="The atto-script to run")
-    args = argparser.parse_args()
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument("file", help="The atto-script to run")
+    args = arg_parser.parse_args()
 
     # handle other argv options in the future
 

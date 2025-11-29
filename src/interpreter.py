@@ -30,7 +30,7 @@ class AttoMissingMainError(RuntimeError):
 
 
 class AttoRuntimeError(RuntimeError):
-    """When a runtimerror error happens"""
+    """When a runtimeerror error happens"""
 
     def __init__(self, msg: str, tok: Token, frame: Frame):
         line, col = tok.line_col()
@@ -76,7 +76,7 @@ class AttoRuntimeError(RuntimeError):
 
 class Frame:
     """A context frame for each function call.
-    That is the the runtime info while fn is eceuted.
+    That is the the runtime info while fn is executed.
 
     Attributes
     ----------
@@ -111,19 +111,19 @@ class Interpreter:
 
     By default it loads the atto corelib and mixes that into the function
     signatures of our program. It is possible to exclude corelib, but not
-    recomended.
+    recommended.
 
     Attributes
     ----------
-    use_codelib : bool
-        Wheater we use corelib, defaults to True
+    use_corelib : bool
+        Whether we use corelib, defaults to True
     parser : Parser
         The Parser instance that parsed the AST tree
 
     Parameters
     ----------
     use_corelib : bool, optional(True)
-        Wheather we should load corelib, recomend to leave as is if not in
+        Whether we should load corelib, recommend to leave as is if not in
         a unittest mode
     """
 
@@ -207,11 +207,11 @@ class Interpreter:
             return 0
 
     def _eval_node(self, node: ASTnode | None, frame: Frame) -> Value:
-        """Evaluates each AST node recursivly
+        """Evaluates each AST node recursively
 
         This is the tree-traversal method for each AST node.
         A more grown up interpreter would use this step to compile to bytecode
-        instead and let the Intpreter stage come after the compile stage.
+        instead and let the Interpreter stage come after the compile stage.
         As atto is as simple as possible we evaluate directly from the AST tree.
 
         Parameters
@@ -228,7 +228,7 @@ class Interpreter:
         """
 
         # This function is a bit lengthy, although that is nothing compared to
-        # cpythons internal eval loop which in the past spanned several 1000 lines.
+        # cpython's internal eval loop which in the past spanned several 1000 lines.
         # doing this in one function, instead of delegating from a router function
         # is actually simpler and more efficient (less call overhead and scattering).
         # Each entry is rather neatly structured due to the match case construct.
