@@ -5,7 +5,8 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
-from src.interpreter import Interpreter
+from src.interpreter import Interpreter, AttoMissingMainError, AttoRuntimeError
+from src.lexer import AttoSyntaxError
 
 
 def run_interpreter(script: Path):
@@ -20,6 +21,8 @@ def run_interpreter(script: Path):
     try:
         interpreter = Interpreter()
         interpreter.exec_file(script)
+    except (AttoSyntaxError, AttoMissingMainError, AttoRuntimeError) as e:
+        print(f"{e}")
     except KeyboardInterrupt:
         print("Interrupt signal, exiting atto interpreter...")
 

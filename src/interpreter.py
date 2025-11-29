@@ -34,7 +34,7 @@ class AttoRuntimeError(RuntimeError):
 
     def __init__(self, msg: str, tok: Token, frame: Frame):
         line, col = tok.line_col()
-        super().__init__(f"RuntimeError: {msg} {tok.lexer.path.name}:{line} col: {col}")
+        super().__init__(f"RuntimeError: {msg} file:{tok.lexer.path.name}:{line} col: {col}")
         self.frame = frame
         self.tok = tok
 
@@ -151,7 +151,18 @@ class Interpreter:
 
         Returns
         -------
-        int : The result of the last execution in program
+        int
+            The result of the last execution in program
+
+
+        Raises
+        ------
+        AttoSyntaxError
+            When source is not able to be parsed.
+        AttoMissingMainError
+            When source has no main function.
+        AttoRuntimeError
+            When an error occurs during execution.
         """
 
         try:
@@ -173,18 +184,23 @@ class Interpreter:
         path : Path | None, Optional(None)
             The path where source text came from.
             Displays filename in error messages.
+
+        Raises
+        ------
+        AttoSyntaxError
+            When source is not able to be parsed.
+        AttoMissingMainError
+            When source has no main function.
+        AttoRuntimeError
+            When an error occurs during execution.
         """
 
         funcs = deepcopy(Interpreter._corelib_funcs) if self.use_corelib else {}
         if path is None:
             path = Path()
-        try:
-            self.parser = Parser(source, path, funcs)
-        except AttoSyntaxError as e:
-            print(e)
-            return 1
-        else:
-            return self._eval()
+
+        self.parser = Parser(source, path, funcs)
+        return self._eval()
 
     def _eval(self) -> int:
         if not "main" in self.parser.funcs:
@@ -347,12 +363,10 @@ class Interpreter:
                     except ValueError:
                         pass
                 # also catches when left is a list
-                line, col = node.left.token.line_col()  # type: ignore [union-attr]
                 value = node.left.token.value()  # type: ignore [union-attr]
                 raise AttoRuntimeError(
                     (
-                        f"Failed to convert {value} to "
-                        f"number at line: {line}, col: {col}"
+                        f"Failed to convert {value} to number"
                     ),
                     node.token,
                     frame,
